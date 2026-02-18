@@ -1,0 +1,79 @@
+resources:
+  jobs:
+    FleetOps:
+      name: FleetOps
+      tasks:
+        - task_key: init_cluster
+          notebook_task:
+            notebook_path: 00_setup/00_start_cluster
+            source: GIT
+        - task_key: bronze_driver_assignments
+          depends_on:
+            - task_key: init_cluster
+          notebook_task:
+            notebook_path: 01_bronze/01_bronze_erp
+            base_parameters:
+              table_name: driver_assignments
+            source: GIT
+        - task_key: bronze_drivers
+          depends_on:
+            - task_key: init_cluster
+          notebook_task:
+            notebook_path: 01_bronze/01_bronze_erp
+            base_parameters:
+              table_name: drivers
+            source: GIT
+        - task_key: bronze_telemetry
+          depends_on:
+            - task_key: init_cluster
+          notebook_task:
+            notebook_path: 01_bronze/01_bronze_iot
+            source: GIT
+        - task_key: bronze_trucks
+          depends_on:
+            - task_key: init_cluster
+          notebook_task:
+            notebook_path: 01_bronze/01_bronze_erp
+            base_parameters:
+              table_name: trucks
+            source: GIT
+        - task_key: silver_assignments
+          depends_on:
+            - task_key: bronze_driver_assignments
+          notebook_task:
+            notebook_path: 02_silver/02_silver_driver_assignments
+            source: GIT
+        - task_key: silver_drivers
+          depends_on:
+            - task_key: bronze_drivers
+          notebook_task:
+            notebook_path: 02_silver/02_silver_drivers
+            source: GIT
+        - task_key: silver_telemetry
+          depends_on:
+            - task_key: bronze_telemetry
+          notebook_task:
+            notebook_path: 02_silver/02_silver_telemetry
+            source: GIT
+        - task_key: silver_trucks
+          depends_on:
+            - task_key: bronze_trucks
+          notebook_task:
+            notebook_path: 02_silver/02_silver_trucks
+            source: GIT
+        - task_key: gold_layer
+          depends_on:
+            - task_key: silver_assignments
+            - task_key: silver_drivers
+            - task_key: silver_telemetry
+            - task_key: silver_trucks
+          notebook_task:
+            notebook_path: 03_gold/03_gold
+            source: GIT
+      git_source:
+        git_url: https://github.com/joaoacf1/fleet-ops-lakehouse.git
+        git_provider: gitHub
+        git_branch: main
+      queue:
+        enabled: true
+      performance_target: PERFORMANCE_OPTIMIZED
