@@ -1,0 +1,31 @@
+{
+  "evaluation": {
+    "source": {
+      "name": "nome_motorista",
+      "display": "source",
+      "aggregation": "COUNT"
+    },
+    "comparison_operator": "GREATER_THAN",
+    "threshold": {
+      "value": {
+        "double_value": 0.0
+      }
+    },
+    "notification": {}
+  },
+  "schedule": {
+    "quartz_cron_schedule": "19 0 18 * * ?",
+    "timezone_id": "America/Sao_Paulo"
+  },
+  "query_lines": [
+    "SELECT ",
+    "    nome_motorista,",
+    "    data_referencia,",
+    "    score_conducao,",
+    "    tempo_ocioso_minutos,",
+    "    qtd_infracoes_velocidade",
+    "FROM fleetops_project.gold.agg_driver_performance_daily",
+    "WHERE score_conducao < 50",
+    "  AND data_referencia = CURRENT_DATE;"
+  ]
+}

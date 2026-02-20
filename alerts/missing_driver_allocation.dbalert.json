@@ -1,0 +1,30 @@
+{
+  "evaluation": {
+    "source": {
+      "name": "truck_id",
+      "display": "source",
+      "aggregation": "COUNT"
+    },
+    "comparison_operator": "GREATER_THAN",
+    "threshold": {
+      "value": {
+        "double_value": 0.0
+      }
+    },
+    "notification": {}
+  },
+  "schedule": {
+    "quartz_cron_schedule": "10 0 18 * * ?",
+    "timezone_id": "America/Sao_Paulo"
+  },
+  "query_lines": [
+    "SELECT ",
+    "    truck_id, ",
+    "    COUNT(event_id) as qtd_eventos_orfaos,",
+    "    MAX(data_hora) as ultimo_evento",
+    "FROM fleetops_project.gold.fact_telemetria",
+    "WHERE motorista_fk = -1 ",
+    "  AND DATE(data_hora) = CURRENT_DATE",
+    "GROUP BY truck_id;"
+  ]
+}
