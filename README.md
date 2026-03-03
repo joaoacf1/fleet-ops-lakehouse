@@ -65,13 +65,29 @@ databricks secrets put --scope project_secrets --key supabase_port
 databricks secrets put --scope project_secrets --key supabase_user
 databricks secrets put --scope project_secrets --key supabase_password
 ```
-**2. Conexão com o ERP (PostgreSQL)**
-No workspace do Databricks, navegue até **Catalog > Add > Connection** e crie uma nova conexão do tipo PostgreSQL apontando para as credenciais do seu Supabase.
+**2. Preparação do S3 e Conexões (Unity Catalog)**
+* **AWS S3:** Crie um bucket na sua conta AWS (ex: `fleetops-landing-zone`).
+* **Unity Catalog (External Location):** No Databricks, crie uma *Storage Credential* com as permissões da AWS e, em seguida, crie um *External Location* apontando para o seu bucket. Isso é obrigatório para que o comando `CREATE EXTERNAL VOLUME` da camada Bronze funcione.
+* **PostgreSQL (Lakehouse Federation):** Em **Catalog > Add > Connection**, crie uma conexão do tipo PostgreSQL. 
+  **Importante:** O nome da conexão deve ser `con_supabase`, pois os notebooks da Bronze o referenciam.
+  
+**3. Execução e Validação do Pipeline (Simulando o SCD Type 2)**
+Para que o pipeline demonstre o seu principal valor (a resolução de troca de motoristas no tempo), o fluxo de execução deve seguir a ordem cronológica abaixo:
 
-**3. Simulação de Dados**
-Para gerar a massa de dados inicial:
-* Rode o notebook `scripts/supabase_erp_generator.ipynb` para criar as tabelas no Postgres e iniciar as alocações da frota.
-* Rode o notebook `scripts/s3_telemetry_generator.ipynb` para iniciar o fluxo contínuo de JSONs de IoT para o bucket S3.
+* **Passo 3.1 (O Início do Turno):** Rode o notebook `scripts/supabase_erp_generator.ipynb` com o parâmetro `p_day = 1`. Isso alocará os motoristas iniciais nos caminhões.
+* **Passo 3.2 (Gerando Tráfego):** Rode o notebook `scripts/s3_telemetry_generator.ipynb`. **Atenção:** Este script roda em um loop infinito enviando dados a cada 30 segundos. Deixe-o rodar por cerca de 2 ou 3 minutos para gerar uma volumetria inicial e, em seguida, **interrompa a execução manualmente**.
+* **Passo 3.3 (Primeira Ingestão):** Rode o seu Job no Databricks (`00_setup/job.yml`) ou execute as camadas Bronze, Silver e Gold sequencialmente. Isso criará a base histórica (Estado A).
+* **Passo 3.4 (A Troca de Motorista):** Volte ao notebook `scripts/supabase_erp_generator.ipynb` e rode-o com o parâmetro `p_day = 2`. Isso fará com que o sistema transacional troque o motorista de um dos caminhões.
+* **Passo 3.5 (Tráfego do Novo Motorista):** Rode o `scripts/s3_telemetry_generator.ipynb` novamente por mais alguns minutos e depois interrompa. Os novos eventos de IoT agora pertencem ao novo motorista.
+* **Passo 3.6 (O Teste do SCD2):** Rode o Job do Databricks pela segunda vez. A camada Silver fará o fechamento da janela de tempo do motorista antigo e abrirá a do novo. A camada Gold cruzará os eventos perfeitamente.
 
 **4. Execução do Pipeline**
-Utilize o arquivo `00_setup/job.yml` para importar o Workflow no Databricks e executar o pipeline completo, ou rode os notebooks das camadas `Bronze`, `Silver` e `Gold` sequencialmente. O código valida e cria os schemas necessários automaticamente durante a execução.
+Utilize o arquivo `00_setup/job.yml` para importar o Workflow completo no Databricks, ou rode os notebooks das camadas `Bronze`, `Silver` e `Gold` de forma sequencial. O código já está preparado para validar e criar dinamicamente os schemas e volumes necessários durante a primeira execução.
+
+**5. Configuração dos Alertas (Databricks SQL)**
+Toda a configuração de *Thresholds* e *Schedules* dos alertas foi versionada como código na pasta `/alerts` utilizando arquivos `.dbalert.json`. A importação é nativa e simplificada:
+
+1. Baixe os arquivos `.dbalert.json` disponíveis na pasta `/alerts` deste repositório.
+2. No menu lateral do Databricks, acesse a aba **Workspace**.
+3. Arraste e solte os arquivos JSON diretamente para dentro da sua pasta de trabalho.
+4. O Databricks reconhecerá automaticamente os arquivos como Alertas. Basta abri-los, verificar a query conectada e ativá-los.
