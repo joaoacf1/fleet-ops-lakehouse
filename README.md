@@ -10,7 +10,11 @@ Um pipeline de engenharia de dados *end-to-end* construído no Databricks utiliz
 
 O projeto processa dados de telemetria IoT de uma frota de caminhões em conjunto com dados transacionais de um ERP, resolvendo o problema de rastreabilidade temporal de motoristas para cálculo de métricas de performance e consumo de combustível.
 
+<img width="2660" height="1209" alt="Image" src="https://github.com/user-attachments/assets/dfc0d586-4223-4568-80e9-f429e02457c2" />
+
 ## 📌 Arquitetura e Fluxo de Dados
+
+<img width="1112" height="510" alt="Image" src="https://github.com/user-attachments/assets/af546787-adae-47dd-b02a-075825b8ff55" />
 
 A infraestrutura foi desenhada para lidar com a assincronicidade entre eventos de sensores em tempo real e as escalas de trabalho legadas do sistema de RH.
 
@@ -33,6 +37,7 @@ A infraestrutura foi desenhada para lidar com a assincronicidade entre eventos d
    * Tabela agregada diária `agg_driver_performance_daily` que calcula KPIs de negócio:
      * **Tempo Ocioso:** Identificação de desperdício cruzando velocidade `0` com RPM em marcha lenta.
      * **Score de Condução:** Algoritmo de penalização baseado em contagem de infrações de velocidade, rotação excessiva e superaquecimento do motor.
+
 
 ## 🚨 Monitoramento e Alertas
 
